@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+#
+# Generate the two crypto secrets, e.g.:
+#   openssl rand -hex 32   # JWT_SECRET (>= 32 chars)
+#   openssl rand -hex 64   # ENCRYPTION_MASTER_KEY (>= 64 chars)
+
+project     = "relavoi"
+environment = "staging"
+aws_region  = "af-south-1"
+domain_name = "relavoi.com"
+image_tag   = "latest"
+
+# Secrets (do NOT commit real values)
+jwt_secret            = "REPLACE_WITH_openssl_rand_hex_32"
+encryption_master_key = "REPLACE_WITH_openssl_rand_hex_64"
+at_api_key            = "REPLACE_WITH_AFRICASTALKING_SANDBOX_KEY"
+at_username           = "sandbox"
+at_environment        = "sandbox"
+
+# Browser origins allowed by CORS (Vercel-hosted dashboards + previews)
+cors_origins = "https://app.relavoi.com,https://admin.relavoi.com,https://*.vercel.app"
