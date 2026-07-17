@@ -109,19 +109,8 @@ variable "db_password" {
 }
 
 # ── DNS ──
-
-data "aws_route53_zone" "main" {
-  name         = var.domain_name
-  private_zone = false
-}
-
-resource "aws_route53_record" "staging_api" {
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = "staging-api.${var.domain_name}"
-  type    = "A"
-  ttl     = 300
-  records = [aws_eip.staging.public_ip]
-}
+# DNS is managed on Namecheap, not AWS. Point a staging-api.relavoi.com A-record
+# at the aws_eip.staging.public_ip output there.
 
 # ── VPC (default VPC, keep it simple) ──
 
