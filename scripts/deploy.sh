@@ -16,7 +16,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 ENV_DIR="$ROOT/envs/$ENV"
 BACKEND_DIR="$(cd "$ROOT/../relavoi-backend" && pwd)"
-REGION="${AWS_REGION:-af-south-1}"
+REGION="${AWS_REGION:-eu-north-1}"
 
 # Default image tag to the backend's git short SHA.
 IMAGE_TAG="${2:-$(git -C "$BACKEND_DIR" rev-parse --short HEAD 2>/dev/null || echo latest)}"

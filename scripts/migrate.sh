@@ -12,7 +12,7 @@ case "$ENV" in
   *) echo "Usage: $0 <staging|prod>"; exit 1 ;;
 esac
 
-REGION="${AWS_REGION:-af-south-1}"
+REGION="${AWS_REGION:-eu-north-1}"
 CLUSTER="relavoi-$ENV-cluster"
 SERVICE="relavoi-$ENV-api"
 

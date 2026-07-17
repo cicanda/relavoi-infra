@@ -27,7 +27,7 @@ variable "vpc_cidr" {
 variable "availability_zones" {
   type        = list(string)
   description = "AZs to spread subnets across (exactly two expected)."
-  default     = ["af-south-1a", "af-south-1b"]
+  default     = ["eu-north-1a", "eu-north-1b"]
 }
 
 locals {

@@ -16,7 +16,7 @@ terraform {
   # backend "s3" {
   #   bucket         = "relavoi-terraform-state"
   #   key            = "prod/terraform.tfstate"
-  #   region         = "af-south-1"
+  #   region         = "eu-north-1"
   #   dynamodb_table = "relavoi-terraform-locks"
   #   encrypt        = true
   # }
@@ -39,7 +39,7 @@ variable "environment" {
 
 variable "aws_region" {
   type    = string
-  default = "af-south-1"
+  default = "eu-north-1"
 }
 
 variable "domain_name" {

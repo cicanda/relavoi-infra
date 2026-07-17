@@ -6,7 +6,7 @@
 
 project     = "relavoi"
 environment = "prod"
-aws_region  = "af-south-1"
+aws_region  = "eu-north-1"
 domain_name = "relavoi.com"
 image_tag   = "latest"
 

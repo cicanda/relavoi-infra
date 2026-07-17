@@ -6,7 +6,7 @@
 # Usage: ./scripts/bootstrap-state.sh
 set -euo pipefail
 
-REGION="${AWS_REGION:-af-south-1}"
+REGION="${AWS_REGION:-eu-north-1}"
 BUCKET="${STATE_BUCKET:-relavoi-terraform-state}"
 TABLE="${LOCK_TABLE:-relavoi-terraform-locks}"
 

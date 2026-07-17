@@ -14,10 +14,17 @@ horizontally, which Fargate handles well.
 
 ## Region
 
-Everything deploys to **`af-south-1` (Cape Town)** — closest to the Nigerian
-market. **`af-south-1` is an opt-in region**: enable it in the AWS console
-(Account → AWS Regions) before deploying, or API calls will fail with
-`OptInRequired`.
+Everything deploys to **`eu-north-1` (Stockholm)**, a standard (always-enabled)
+AWS region — no opt-in step required.
+
+### Latency to Nigeria
+
+Stockholm adds roughly **80–120 ms** to the round trip for Nigerian PSTN traffic,
+versus ~30–50 ms from Cape Town (`af-south-1`). This is acceptable: the
+latency-critical path is **server-side webhook processing**, and the extra
+network hop stays well inside the 500 ms p99 budget. The actual call audio
+travels over PSTN **directly between the two Nigerian phones** — it never
+transits your servers.
 
 ## Architecture
 
@@ -67,13 +74,11 @@ and `webhook` have port mappings, health checks, and an ALB target group; the
 - **Terraform** 1.7+ recommended (validated against 1.5+)
 - **Docker** (with `linux/amd64` build support; the deploy script forces the platform)
 - The **domain's hosted zone already in Route 53** (this project reads it, it
-  does not create it). `af-south-1` **opt-in region enabled**.
+  does not create it).
 
 ## First-time deployment
 
 ```bash
-# 0. Enable af-south-1 in the AWS console if you haven't.
-
 # 1. Create the remote-state backend (S3 + DynamoDB), then uncomment the
 #    backend "s3" block in envs/<env>/main.tf.
 ./scripts/bootstrap-state.sh
@@ -136,7 +141,7 @@ ElastiCache is private and security-group-guarded. Non-secret config (pool sizes
 circuit-breaker thresholds, `NODE_ENV`, `PORT`, `LOG_LEVEL`, `CORS_ORIGINS`) is
 passed directly as task-definition environment.
 
-## Cost estimates (approximate, af-south-1)
+## Cost estimates (approximate, eu-north-1)
 
 **Staging ~ $80–120/month**
 
@@ -161,8 +166,9 @@ passed directly as task-definition environment.
 | Secrets/ECR/CloudWatch/S3/KMS | ~$8–12 |
 
 NAT-gateway and ALB data processing, plus Fargate auto-scaling under load, are
-the main variables. Numbers exclude data transfer out and Africa's Talking
-telephony charges.
+the main variables. `eu-north-1` list prices run modestly lower than
+`af-south-1` for Fargate and RDS, so these ranges are conservative. Numbers
+exclude data transfer out and Africa's Talking telephony charges.
 
 ## Layout
 
