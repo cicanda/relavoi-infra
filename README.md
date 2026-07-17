@@ -6,6 +6,65 @@ Only the backend lives here. The tenant dashboard and operator console deploy
 separately to Vercel; the mobile SDKs and docs site are not deployed
 infrastructure.
 
+There are two deployment shapes:
+
+- **Staging** — a single EC2 instance running everything in Docker Compose
+  (~$16/month). See [Staging (Single EC2)](#staging-single-ec2) below.
+- **Production** — the full ECS Fargate architecture (ALB, RDS, ElastiCache,
+  auto-scaling). Everything from [Production (ECS Fargate)](#production-ecs-fargate)
+  onward describes it.
+
+## Staging (Single EC2)
+
+Staging runs on a single EC2 instance with Docker Compose. Cost: ~$15/month.
+
+Components on one box:
+- Relavoi backend (all services in one process)
+- PostgreSQL 16
+- Redis 7
+- Caddy (automatic TLS via Let's Encrypt)
+
+### Prerequisites
+- AWS key pair created in eu-north-1 (EC2 > Key Pairs > Create)
+- relavoi.com nameservers pointed to Route 53
+
+### Deploy
+
+```bash
+# First time: create infrastructure
+cd envs/staging
+cp terraform.tfvars.example terraform.tfvars
+# Fill in values
+terraform init
+terraform plan
+terraform apply
+
+# Note the public IP and SSH command from the outputs
+
+# Deploy the application
+cd ../..
+./scripts/deploy-staging.sh ../relavoi-backend
+
+# Seed the database
+ssh -i ~/.ssh/relavoi-staging.pem ubuntu@<IP> \
+  'cd /opt/relavoi && docker compose exec api node dist/scripts/run-seed.js'
+```
+
+### Cost
+- t3.small: ~$15/month
+- Elastic IP: free (while attached to running instance)
+- Route 53: ~$0.50/month
+- Total: ~$16/month
+
+The EC2 instance boots from `envs/staging/user-data.sh`, which installs Docker +
+Caddy, writes `.env` and `docker-compose.yml` under `/opt/relavoi`, and starts
+Postgres + Redis. `deploy-staging.sh` builds the image locally, ships it over
+SSH, and (re)starts the `api` container.
+
+---
+
+# Production (ECS Fargate)
+
 ## Why Fargate (not EKS)
 
 Fargate is cheaper and simpler for a small team — no $75/month EKS control-plane

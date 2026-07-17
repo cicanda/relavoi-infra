@@ -1,22 +1,25 @@
-# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
-#
-# Generate the two crypto secrets, e.g.:
-#   openssl rand -hex 32   # JWT_SECRET (>= 32 chars)
-#   openssl rand -hex 64   # ENCRYPTION_MASTER_KEY (>= 64 chars)
+project       = "relavoi"
+environment   = "staging"
+aws_region    = "eu-north-1"
+aws_profile   = "relavoi"
+domain_name   = "relavoi.com"
+instance_type = "t3.small"
 
-project     = "relavoi"
-environment = "staging"
-aws_region  = "eu-north-1"
-aws_profile = "relavoi"
-domain_name = "relavoi.com"
-image_tag   = "latest"
+# Create a key pair in AWS console first, download the .pem file
+key_pair_name = "relavoi-staging"
 
-# Secrets (do NOT commit real values)
-jwt_secret            = "REPLACE_WITH_openssl_rand_hex_32"
-encryption_master_key = "REPLACE_WITH_openssl_rand_hex_64"
-at_api_key            = "REPLACE_WITH_AFRICASTALKING_SANDBOX_KEY"
-at_username           = "sandbox"
-at_environment        = "sandbox"
+# Restrict SSH to your IP (find yours at whatismyip.com)
+ssh_allowed_cidr = "YOUR_IP/32"
 
-# Browser origins allowed by CORS (Vercel-hosted dashboards + previews)
-cors_origins = "https://app.relavoi.com,https://admin.relavoi.com,https://*.vercel.app"
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+jwt_secret            = "CHANGE_THIS"
+encryption_master_key = "CHANGE_THIS"
+db_password           = "CHANGE_THIS"
+
+# Africa's Talking
+at_api_key     = "YOUR_AT_API_KEY"
+at_username    = "sandbox"
+at_environment = "sandbox"
+
+# Vercel frontend URLs (update after deploying to Vercel)
+cors_origins = "https://app.relavoi.com,https://admin.relavoi.com,http://localhost:3001,http://localhost:3003"

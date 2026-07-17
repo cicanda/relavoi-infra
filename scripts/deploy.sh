@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 #
+# Production ECS deployment. For staging (single EC2), use deploy-staging.sh.
+#
 # Build + push the backend image, apply Terraform, wait for ECS stability, and
 # health-check the API.
 #
-# Usage: ./scripts/deploy.sh <staging|prod> [image_tag]
+# Usage: ./scripts/deploy.sh prod [image_tag]
 set -euo pipefail
 
 ENV="${1:-}"
 case "$ENV" in
-  staging|prod) ;;
-  *) echo "Usage: $0 <staging|prod> [image_tag]"; exit 1 ;;
+  prod) ;;
+  staging)
+    echo "Staging runs on a single EC2 instance, not ECS."
+    echo "Use: ./scripts/deploy-staging.sh [backend_dir]"
+    exit 1
+    ;;
+  *) echo "Usage: $0 prod [image_tag]"; exit 1 ;;
 esac
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
