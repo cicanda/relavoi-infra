@@ -8,14 +8,14 @@ terraform {
     }
   }
 
-  # Uncomment after bootstrap-state.sh
-  # backend "s3" {
-  #   bucket         = "relavoi-terraform-state"
-  #   key            = "staging/terraform.tfstate"
-  #   region         = "eu-north-1"
-  #   dynamodb_table = "relavoi-terraform-locks"
-  #   encrypt        = true
-  # }
+  backend "s3" {
+    bucket         = "relavoi-terraform-state"
+    key            = "staging/terraform.tfstate"
+    region         = "eu-north-1"
+    dynamodb_table = "relavoi-terraform-locks"
+    encrypt        = true
+    profile        = "relavoi"
+  }
 }
 
 provider "aws" {
