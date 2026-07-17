@@ -76,6 +76,24 @@ and `webhook` have port mappings, health checks, and an ALB target group; the
 - The **domain's hosted zone already in Route 53** (this project reads it, it
   does not create it).
 
+## AWS Profile
+
+All scripts and Terraform commands use the `relavoi` AWS profile by default. Set it up once:
+
+```bash
+aws configure --profile relavoi
+# Enter your access key, secret key, region eu-north-1, output json
+
+# Make it the default for your terminal
+echo 'export AWS_PROFILE=relavoi' >> ~/.zshrc
+source ~/.zshrc
+```
+
+The Terraform provider reads the profile from the `aws_profile` variable
+(default `relavoi`); the scripts honor `AWS_PROFILE` if already exported and fall
+back to `relavoi`. CI does not use a profile — it authenticates via OIDC role
+assumption.
+
 ## First-time deployment
 
 ```bash

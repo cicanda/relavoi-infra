@@ -16,6 +16,9 @@ REGION="${AWS_REGION:-eu-north-1}"
 CLUSTER="relavoi-$ENV-cluster"
 SERVICE="relavoi-$ENV-api"
 
+# Use the relavoi AWS profile for local runs (CI uses OIDC, not this).
+export AWS_PROFILE="${AWS_PROFILE:-relavoi}"
+
 blue()  { printf '\033[34m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }

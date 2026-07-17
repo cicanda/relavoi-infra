@@ -7,6 +7,7 @@
 project     = "relavoi"
 environment = "staging"
 aws_region  = "eu-north-1"
+aws_profile = "relavoi"
 domain_name = "relavoi.com"
 image_tag   = "latest"
 

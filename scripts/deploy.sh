@@ -18,6 +18,9 @@ ENV_DIR="$ROOT/envs/$ENV"
 BACKEND_DIR="$(cd "$ROOT/../relavoi-backend" && pwd)"
 REGION="${AWS_REGION:-eu-north-1}"
 
+# Use the relavoi AWS profile for local runs (CI uses OIDC, not this).
+export AWS_PROFILE="${AWS_PROFILE:-relavoi}"
+
 # Default image tag to the backend's git short SHA.
 IMAGE_TAG="${2:-$(git -C "$BACKEND_DIR" rev-parse --short HEAD 2>/dev/null || echo latest)}"
 
