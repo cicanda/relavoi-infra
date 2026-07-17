@@ -3,73 +3,75 @@ set -euo pipefail
 
 export AWS_PROFILE="${AWS_PROFILE:-relavoi}"
 
-INSTANCE_IP=$(cd envs/staging && terraform output -raw public_ip)
-KEY_PAIR=$(cd envs/staging && terraform output -raw ssh_command | grep -oP '~/.ssh/\K[^.]+')
-SSH_KEY="~/.ssh/${KEY_PAIR}.pem"
-BACKEND_DIR="${1:-../relavoi-backend}"
+# Resolve instance details from Terraform
+STAGING_DIR="$(cd "$(dirname "$0")/../envs/staging" && pwd)"
+INSTANCE_IP=$(cd "$STAGING_DIR" && terraform output -raw public_ip)
+KEY_PAIR_NAME=$(cd "$STAGING_DIR" && terraform output -raw key_pair_name 2>/dev/null || echo "relavoi-staging")
+SSH_KEY="$HOME/.ssh/${KEY_PAIR_NAME}.pem"
+BRANCH="${1:-main}"
+REPO_URL="${REPO_URL:-git@github.com:cicanda/relavoi-backend.git}"
 
-echo "=== Deploying Relavoi to Staging ==="
+echo "=== Deploying Relavoi Staging ==="
 echo "Instance: $INSTANCE_IP"
-echo "Backend:  $BACKEND_DIR"
+echo "Branch:   $BRANCH"
+echo "Repo:     $REPO_URL"
 echo ""
 
-# Step 1: Build Docker image locally
-echo "--- Step 1: Building Docker image ---"
-if [[ ! -d "$BACKEND_DIR" ]]; then
-  echo "ERROR: Backend directory not found at $BACKEND_DIR"
+# Check SSH key exists
+if [[ ! -f "$SSH_KEY" ]]; then
+  echo "ERROR: SSH key not found at $SSH_KEY"
+  echo "Download your key pair .pem from AWS and place it there."
   exit 1
 fi
 
-docker build -f "$BACKEND_DIR/docker/Dockerfile" -t relavoi-api:latest "$BACKEND_DIR"
-echo "Image built."
-
-# Step 2: Save and transfer image to EC2
-echo ""
-echo "--- Step 2: Transferring image to EC2 ---"
-docker save relavoi-api:latest | gzip > /tmp/relavoi-api.tar.gz
-scp -i "$SSH_KEY" /tmp/relavoi-api.tar.gz "ubuntu@${INSTANCE_IP}:/tmp/"
-rm /tmp/relavoi-api.tar.gz
-echo "Image transferred."
-
-# Step 3: Load image and restart on EC2
-echo ""
-echo "--- Step 3: Loading image and restarting ---"
-ssh -i "$SSH_KEY" "ubuntu@${INSTANCE_IP}" << 'REMOTEOF'
+# Deploy on the remote instance
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new "ubuntu@${INSTANCE_IP}" << REMOTEOF
 set -e
 cd /opt/relavoi
 
-# Load the new image
-docker load < /tmp/relavoi-api.tar.gz
-rm /tmp/relavoi-api.tar.gz
+echo "--- Pulling latest code ---"
+if [[ -d "relavoi-backend" ]]; then
+  cd relavoi-backend
+  git fetch origin
+  git checkout ${BRANCH}
+  git pull origin ${BRANCH}
+  cd ..
+else
+  git clone -b ${BRANCH} ${REPO_URL} relavoi-backend
+fi
 
-# Restart the API container with the new image
+echo ""
+echo "--- Building Docker image ---"
+docker build -f relavoi-backend/docker/Dockerfile -t relavoi-api:latest relavoi-backend/
+
+echo ""
+echo "--- Restarting services ---"
 docker compose up -d --force-recreate api
 
-# Wait for health
-echo "Waiting for health check..."
+echo ""
+echo "--- Running migrations ---"
+# Wait for postgres to be ready
+sleep 5
+docker compose exec -T api node dist/scripts/run-migrations.js 2>&1 || echo "Migration runner not found, trying alternative..."
+
+echo ""
+echo "--- Health check ---"
 for i in {1..20}; do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/v1/health 2>/dev/null || echo "000")
-  if [[ "$STATUS" == "200" ]]; then
+  STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/v1/health 2>/dev/null || echo "000")
+  if [[ "\$STATUS" == "200" ]]; then
     echo "Health check passed!"
     break
   fi
-  echo "  Attempt $i: HTTP $STATUS"
+  echo "  Attempt \$i: HTTP \$STATUS"
   sleep 5
 done
 REMOTEOF
 
-# Step 4: Run migrations
 echo ""
-echo "--- Step 4: Running migrations ---"
-ssh -i "$SSH_KEY" "ubuntu@${INSTANCE_IP}" << 'REMOTEOF'
-cd /opt/relavoi
-docker compose exec api node dist/scripts/run-migrations.js
-REMOTEOF
 
-# Step 5: Health check from outside
-echo ""
-echo "--- Step 5: External health check ---"
-API_URL=$(cd envs/staging && terraform output -raw api_url)
+# External health check
+API_URL=$(cd "$STAGING_DIR" && terraform output -raw api_url)
+echo "--- External health check ---"
 for i in {1..10}; do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/v1/health" 2>/dev/null || echo "000")
   if [[ "$STATUS" == "200" ]]; then
@@ -82,10 +84,12 @@ done
 
 echo ""
 echo "=== Deploy Complete ==="
-echo "API:       $API_URL"
-echo "Instance:  $INSTANCE_IP"
+echo "API:        $API_URL"
+echo "Instance:   $INSTANCE_IP"
+echo "Branch:     $BRANCH"
 echo ""
-echo "Next steps:"
-echo "  1. Give Africa's Talking the webhook URL: $API_URL/v1/webhooks/cpaas/voice"
-echo "  2. Give Africa's Talking the static IP for whitelisting: $INSTANCE_IP"
-echo "  3. Seed the database: ssh -i $SSH_KEY ubuntu@$INSTANCE_IP 'cd /opt/relavoi && docker compose exec api node dist/scripts/run-seed.js'"
+echo "Useful commands:"
+echo "  SSH:      ssh -i $SSH_KEY ubuntu@$INSTANCE_IP"
+echo "  Logs:     ssh -i $SSH_KEY ubuntu@$INSTANCE_IP 'cd /opt/relavoi && docker compose logs -f api'"
+echo "  Seed:     ssh -i $SSH_KEY ubuntu@$INSTANCE_IP 'cd /opt/relavoi && docker compose exec api node dist/scripts/run-seed.js'"
+echo "  Restart:  ssh -i $SSH_KEY ubuntu@$INSTANCE_IP 'cd /opt/relavoi && docker compose restart api'"

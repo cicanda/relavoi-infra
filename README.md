@@ -14,40 +14,72 @@ There are two deployment shapes:
   auto-scaling). Everything from [Production (ECS Fargate)](#production-ecs-fargate)
   onward describes it.
 
-## Staging (Single EC2)
+## Staging Deployment
 
-Staging runs on a single EC2 instance with Docker Compose. Cost: ~$15/month.
+Staging runs on a single EC2 instance (~$16/month). Code is built **on the
+instance** from GitHub — no local Docker builds, no image transfers over SSH.
+The box runs, all in Docker Compose:
 
-Components on one box:
 - Relavoi backend (all services in one process)
 - PostgreSQL 16
 - Redis 7
 - Caddy (automatic TLS via Let's Encrypt)
 
+The instance boots from `envs/staging/user-data.sh` (installs Docker, Caddy, and
+Git; writes `.env` and `docker-compose.yml` under `/opt/relavoi`; starts Postgres
++ Redis). `deploy-staging.sh` then SSHes in, `git pull`s the latest code, builds
+the image on the box, and restarts the `api` container.
+
 ### Prerequisites
 - AWS key pair created in eu-north-1 (EC2 > Key Pairs > Create)
 - relavoi.com nameservers pointed to Route 53
+- A GitHub **deploy key** for `cicanda/relavoi-backend` (read-only) — set up in
+  step 2 below. (Skip it only if the repo is public.)
 
-### Deploy
-
+### First Time Setup
 ```bash
-# First time: create infrastructure
+# 1. Create infrastructure
 cd envs/staging
 cp terraform.tfvars.example terraform.tfvars
-# Fill in values
+# Fill in values (key pair, secrets, etc.)
 terraform init
-terraform plan
 terraform apply
 
-# Note the public IP and SSH command from the outputs
-
-# Deploy the application
+# 2. Set up deploy key (one-time)
 cd ../..
-./scripts/deploy-staging.sh ../relavoi-backend
+./scripts/setup-staging-deploy-key.sh
+# Follow the prompts to add the key to GitHub
 
-# Seed the database
+# 3. Deploy the application
+./scripts/deploy-staging.sh
+
+# 4. Seed the database
 ssh -i ~/.ssh/relavoi-staging.pem ubuntu@<IP> \
   'cd /opt/relavoi && docker compose exec api node dist/scripts/run-seed.js'
+```
+
+### Subsequent Deploys
+```bash
+# Deploy latest from main
+./scripts/deploy-staging.sh
+
+# Deploy a specific branch
+./scripts/deploy-staging.sh feature/some-branch
+```
+
+### Useful Commands
+```bash
+# SSH into the instance
+ssh -i ~/.ssh/relavoi-staging.pem ubuntu@<IP>
+
+# View logs
+ssh -i ~/.ssh/<key>.pem ubuntu@<IP> 'cd /opt/relavoi && docker compose logs -f api'
+
+# Restart
+ssh -i ~/.ssh/<key>.pem ubuntu@<IP> 'cd /opt/relavoi && docker compose restart api'
+
+# Rebuild and restart (on the instance)
+ssh -i ~/.ssh/<key>.pem ubuntu@<IP> 'cd /opt/relavoi && docker compose up -d --build api'
 ```
 
 ### Cost
@@ -55,11 +87,6 @@ ssh -i ~/.ssh/relavoi-staging.pem ubuntu@<IP> \
 - Elastic IP: free (while attached to running instance)
 - Route 53: ~$0.50/month
 - Total: ~$16/month
-
-The EC2 instance boots from `envs/staging/user-data.sh`, which installs Docker +
-Caddy, writes `.env` and `docker-compose.yml` under `/opt/relavoi`, and starts
-Postgres + Redis. `deploy-staging.sh` builds the image locally, ships it over
-SSH, and (re)starts the `api` container.
 
 ---
 

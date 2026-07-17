@@ -269,3 +269,7 @@ output "api_url" {
 output "ssh_command" {
   value = "ssh -i ~/.ssh/${var.key_pair_name}.pem ubuntu@${aws_eip.staging.public_ip}"
 }
+
+output "key_pair_name" {
+  value = var.key_pair_name
+}

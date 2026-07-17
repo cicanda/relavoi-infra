@@ -24,8 +24,28 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /
 apt-get update -y
 apt-get install -y caddy
 
+# Install Git
+apt-get install -y git
+
+# Create SSH directory for deploy key
+mkdir -p /home/ubuntu/.ssh
+chmod 700 /home/ubuntu/.ssh
+
+# The deploy key will be added manually after first boot:
+#   scp -i ~/.ssh/relavoi-staging.pem deploy_key ubuntu@<IP>:/home/ubuntu/.ssh/relavoi_deploy
+#   ssh -i ~/.ssh/relavoi-staging.pem ubuntu@<IP> 'chmod 600 ~/.ssh/relavoi_deploy'
+# Then add to SSH config:
+cat > /home/ubuntu/.ssh/config << 'SSHEOF'
+Host github.com
+  IdentityFile /home/ubuntu/.ssh/relavoi_deploy
+  StrictHostKeyChecking accept-new
+SSHEOF
+chmod 600 /home/ubuntu/.ssh/config
+chown -R ubuntu:ubuntu /home/ubuntu/.ssh
+
 # Create app directory
 mkdir -p /opt/relavoi
+chown ubuntu:ubuntu /opt/relavoi
 cd /opt/relavoi
 
 # Create .env file
@@ -103,6 +123,9 @@ services:
     restart: unless-stopped
 
   api:
+    build:
+      context: ./relavoi-backend
+      dockerfile: docker/Dockerfile
     image: relavoi-api:latest
     container_name: relavoi-api
     env_file: .env
