@@ -109,8 +109,9 @@ variable "db_password" {
 }
 
 # ── DNS ──
-# DNS is managed on Namecheap, not AWS. Point a staging-api.relavoi.com A-record
-# at the aws_eip.staging.public_ip output there.
+# DNS is managed on Namecheap, not AWS. Point api.relavoi.com (canonical) and
+# staging-api.relavoi.com (alias) A-records at the aws_eip.staging.public_ip
+# output there. Caddy serves both hostnames.
 
 # ── VPC (default VPC, keep it simple) ──
 
@@ -252,7 +253,7 @@ output "public_ip" {
 }
 
 output "api_url" {
-  value = "https://staging-api.${var.domain_name}"
+  value = "https://api.${var.domain_name}"
 }
 
 output "ssh_command" {

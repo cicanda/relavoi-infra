@@ -208,8 +208,8 @@ cd ../..
 ./scripts/migrate.sh staging
 
 # 6. Point Africa's Talking voice/SMS callbacks at:
-#      https://staging-api.relavoi.com/v1/webhooks/cpaas/voice
-#      https://staging-api.relavoi.com/v1/webhooks/cpaas/sms
+#      https://api.relavoi.com/v1/webhooks/cpaas/voice
+#      https://api.relavoi.com/v1/webhooks/cpaas/sms
 #    and whitelist the NAT gateway IP printed by the deploy script.
 ```
 

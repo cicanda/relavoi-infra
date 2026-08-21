@@ -68,7 +68,7 @@ AT_API_KEY=${at_api_key}
 AT_USERNAME=${at_username}
 AT_ENVIRONMENT=${at_environment}
 
-WEBHOOK_BASE_URL=https://${domain_name}/v1/webhooks/cpaas
+WEBHOOK_BASE_URL=https://api.${domain_name}/v1/webhooks/cpaas
 WEBHOOK_HMAC_ALGO=sha256
 
 CORS_ORIGINS=${cors_origins}
@@ -152,9 +152,16 @@ volumes:
   redisdata:
 COMPOSEEOF
 
-# Configure Caddy (automatic HTTPS via Let's Encrypt)
+# Configure Caddy (automatic HTTPS via Let's Encrypt production).
+# api.${domain_name} is the canonical backend URL; staging-api.${domain_name}
+# is kept as an alias. acme_ca is pinned to LE production so a stray staging
+# account never yields an untrusted certificate.
 cat > /etc/caddy/Caddyfile << CADDYEOF
-${domain_name} {
+{
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
+staging-api.${domain_name}, api.${domain_name} {
     reverse_proxy localhost:3000
 }
 CADDYEOF
@@ -162,5 +169,5 @@ CADDYEOF
 systemctl restart caddy
 
 echo "=== Setup Complete ==="
-echo "Caddy will obtain TLS certificate automatically when DNS propagates."
-echo "API will be available at https://${domain_name}/v1/health"
+echo "Caddy will obtain TLS certificates automatically when DNS propagates."
+echo "API will be available at https://api.${domain_name}/v1/health"
